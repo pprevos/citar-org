@@ -1,0 +1,133 @@
+#+title: Citar Org-mode
+
+Citar Org-mode is a minor mode integrating Emacs [[https://github.com/emacs-citar/citar][Citar]] and Org-mode to enable the creation and management of literature notes. This package is based on Citar-Denote, which uses the Denote engine to manage files. This package allows the creation of literature notes in plain Org mode, independent of any file-naming convention.
+
+* Installation
+This package is not yet available in any repositories. You can install it directly from GitHub with:
+
+#+begin_src elisp
+  (unless (package-installed-p 'citar-org)
+  (package-vc-install
+   '(citar-org
+     :url "https://github.com/pprevos/citar-org-mode/")))
+#+end_src
+
+The =init.el= file in the =test= folder provides a minimum configuration for testing the package. You will need to define the bibliography files you would like to use and the folder in which you would save the literature notes.
+
+* Manual
+** Principles
+A bibliographic note is a file that refers to one or more pieces of literature in your bibliography. 
+
+The Citar-Org-Mode package maintains a many-to-many relationship between your notes and your bibliography through a reference keyword in the front matter of the Org files. Each item in the bibliography can have one or more notes, and each note can reference one or more pieces of literature, allowing a many-to-many relationship.
+
+You can create a collection of atomic notes for a single publication or write a complete literature review, including assorted references within one note. For example, write a note about each book chapter, a lot of single thoughts, or a complete literature review for a collection of journal articles.
+
+The package requires a stable link between the collection of notes and the bibliography to enable references. The most common behaviour for bibliography packages in Emacs is that the filename for the relevant note includes the citation key to link it to the bibliography (e.g., =marcuse_1969_essay.org=).
+
+In Citar-Org-Mode, the citation key forms part of the front matter of Org files through the =reference= keyword, leaving the filename free. The front matter for a bibliographic Org buffer looks something like this:
+
+#+begin_src org :tangle no
+  ,#+title:      Marcuse: An Essay on Liberation
+  ,#+date:       [2022-11-12 Sat 19:23]
+  ,#+filetags:   :philosophy:
+  ,#+reference:  marcuse_1969_essay
+#+end_src
+
+To enable the package to find your literature notes, they must be stored in a single directory, which you can customise with ~citar-org-mode-directory~. The package scans all Org files in the directory for reference lines to create relationships between files and the bibliography.
+
+Citar-Org-Mode stores the relationship between citation keys and note files in a cache. The package regenerates this cache each time after you edit the bibliography.
+
+Depending on the size of your literature collection, searching through all notes for references and citations can take a moment.
+
+** Create bibliographic notes
+Open the Citar interface with ~citar-create-note~. The letters at the start of the Citar menu indicate whether the entry has a link (=L=), note (=N=), attachment (=F=) or is cited in the current buffer (=C=). Select the entry you want to create a note for, hit return and follow the prompts to create a new note.
+
+You can edit the default title in the minibuffer before creating and saving the new note.
+
+If a note exists for an item, you can open it from within the Citar menu. To enable multiple notes for bibliographic items, set the ~citar-open-always-create-notes~ variable to =t=.
+
+The default file name for the new note is based on the title of the selected item.
+
+When the selected literature has one or more files and the ~citar-denote-open-attachment~ variable is non-nil, the first attached file, such as a PDF or ePub document, will be opened when creating a new note.
+
+Various configuration options are available to customise how Citar-Org-Mode creates notes.
+
+*** Title of a bibliographic note
+The default title for a new note is the title of the bibliographic entry. You can modify this behaviour with the ~citar-org-mode-title-format~ variable. Four options are available:
+
+1. ="title"=: Extract the title from the bibliographic item (default)
+2. ="author-year"=: Use citation format as "author(s) (year)" (or editors when no authors are defined)
+3. ="author-year-title"=: Concatenate the first two options
+4. ="full"=: Full citation of the entry
+5. Fallback option or =nil=: The citation key
+
+For example, using this citation: Coppa, Hass, Peck, Burger (2008) /Performing Magic on the Western Stage: From the Eighteenth Century to the Present/, Palgrave Macmillan. The five options result in:
+
+1. ="title"=: "Performing Magic on the Western Stage: From the Eighteenth Century to the Present".
+2. ="author-year"=: "Coppa et al. (2008)". 
+3. ="author-year-title"=: "Coppa et al. (2008) Performing Magic on the Western Stage: From the Eighteenth Century to the Present".
+4. ="full"=: "Coppa, Hass, Peck, Burger (2008) /Performing Magic on the Western Stage: From the Eighteenth Century to the Present/, Palgrave Macmillan".
+5. =nil=: "coppa_2008_perf".
+
+Using ="author-year"= and ="author-year-title"= allows for further configuration.
+
+For entries with more than one author, you can specify the maximum number of names with ~citar-org-mode-title-format-authors~, which is one by default. When the number of defined authors exceeds this, "et al." is added after the last author name. All authors are listed when this variable exceeds the number of defined authors.
+
+The default term between authors is "and", which can be changed by customising ~citar-org-mode-title-format-andstr~.
+
+For example, when using the ="author-year"= option and up to three authors and ="&"= as a connecting term, the title for the example above becomes "Coppa, Hass & Peck et al. (2008)." 
+
+*** File names
+The package assigns a default file name used on the title of the note.
+
+The filename can either be the title as-is (without punctuation), lowercase kebab-case or Snake_Case, as defined by the ~citar-org-mode-file-name~ variable.
+
+For a note with "Marcuse (1969): An Essay on Liberation" as the title, the following options are available:
+
+- As-is: =Marcuse (1969) An Essay on Liberation.org=
+- kebab-case: =marcuse-1969-an-essay-on-liberation.org=
+- Snake_Case: =Marcuse_An_Essay_on_Liberation.org=
+
+When more than one note is created for the same literature with the same title, then the file name will have a numerical suffix to ensure that no existing files are overwritten, e.g.:
+- =marcuse-1969-an-essay-on-liberation.org=
+- =marcuse-1969-an-essay-on-liberation-1.org=
+- =marcuse-1969-an-essay-on-liberation-2.org=
+
+Users are free to manually change file names as they see fit, as the link between the bibliography and the files is stored in the reference keyword inside the file.
+
+** Working with existing notes
+Once you have created some bibliographic notes, you can access and modify them. You can access the attachments, links and other notes associated with references from within via the Citar menu (~citar-open~). Entries with a note are indicated with an =N= in the third column. You can filter the candidates by those only with notes by typing =:n=. 
+
+The ~citar-org-mode-open-note~ command does this filtering for you and only shows items in your bibliography with notes.
+
+The ~citar-open-note~ command lists all registered literature notes in the minibuffer without first selecting from the bibliography.
+
+*** Open attachments, links and notes
+The ~citar-org-mode-dwim~ function provides access to the Citar menu for the referenced literature, from where you can open attachments, other notes, and links related to the citation references associated with the current Denote buffer.
+
+Select the required bibliographic item when there is more than one reference. Alternatively, you can also create a new note for that reference.
+
+*** Open bibliographic entry
+The ~citar-org-mode-open-reference-entry~ function opens the bibliographic entry (BibTeX, BibLaTeX or CSL file) for a selected reference, from where you can edit the data.
+
+*** Adding and removing references
+The ~citar-org-mode-add-reference~ command adds one or more citation keys to the reference line.
+
+Adding the universal argument =C-u= before issuing this command lets you select entries not referenced in literature notes.
+
+You remove citation references with the ~citar-org-remove-reference~ command. When the current buffer references more than one piece of literature, you must select the unwanted item.
+
+When no more reference items are left, the reference keyword is removed and the file is no longer a literature note.
+
+You must save the note before Citar recognises the new addition or removal.
+
+You can also manually edit your file and add and remove reference citation keys.
+
+** Quality Assurance
+The ~citar-org-mode-noref~ function presents a list of all items in the bibliography that are not referenced in the `citar-org-mode-directory`. This function helps you to create a note for each item in your collection and can act as a checklist.
+
+The ~citar-org-mode-check-references~ function checks whether each Org-mode file in ~citar-org-mode-directory~ has a reference line. Files without reference lines are presented in the minbuffer, where users can open them.
+
+* Change Log
+** Version 0.1
+First test version.
